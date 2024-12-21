@@ -34,6 +34,8 @@
 
     <script>
         var getdict;
+        var headers = ['文件名', "产品名称", '单位', "数量", "销售收入", "不含税单价", "税额", "价税合计", "购买方", "发票号码", "销售方",];
+
         function jsonToCsv(jsonData) {
             if (!jsonData || !jsonData.length) {
                 return '';
@@ -115,7 +117,6 @@
 
             // 表头
             // var headers = ["产品名称", "发票号码", "购买方信息名称","销售方信息名称", "数量", "单价", "金额合计", "税额合计", "价税合计（小写）"];
-            var headers = ['文件名', "产品名称", '单位', "数量", "销售收入", "不含税单价", "税额", "价税合计", "购买方", "发票号码", "销售方",];
             headers.forEach(function (headerText) {
                 var header = document.createElement('th');
                 header.textContent = headerText;
@@ -130,7 +131,7 @@
                 headers.forEach(function (header) {
                     var cell = document.createElement('td');
                     textContent = item[header] || ''; // 如果值为undefined，则显示空字符串
-                    cell.innerHTML =textContent
+                    cell.innerHTML = textContent
                     row.appendChild(cell);
                 });
 
@@ -166,39 +167,47 @@
                                 // };
                                 // page.render(renderContext);
                                 page.getTextContent().then(function (textContent) {
-                                    const a = textContent.items.map(item => item.str).filter(str => str.trim() !== '');
-                                    let res;
-                                    if (a[74]) {
-                                        res = {
-                                            '文件名': file.name,
-                                            '产品名称': a[66],
-                                            '发票号码': a[43],
-                                            '购买方': a[50],
-                                            '销售方': a[52],
-                                            '数量': a[74],
-                                            '不含税单价': roundToThreeDecimalPlaces(a[73]), // 四舍五入,
-                                            '单位': '个',
-                                            '销售收入': `￥${a[55]}`,
-                                            '税额': `￥${a[57]}`,
-                                            '价税合计': `￥${a[60]}`,
+                                    const textContentItems = textContent.items.filter(item => item.str.trim() !== '');;
+                                    console.log(textContentItems);
+                                    let res1 = {};
+                                    res1['文件名'] = file.name
+                                    for (let i of textContentItems) {
+                                        if (i.str.trim() !== '' && Math.abs(i.transform[5] - 357.32570755999996) <= 0.01) {
+                                            res1['发票号码'] = i.str;
+                                            // console.log('发票', i.str, i.transform[5] - 357.32570755999996)
                                         }
-                                    } else if (a[72] && a[a.length - 1] != '页') {
-                                        res = {
-                                            '文件名': file.name,
-                                            '产品名称': a[66],
-                                            '发票号码': a[43],
-                                            '购买方': a[50],
-                                            '销售方': a[52],
-                                            '数量': a[72],
-                                            '不含税单价': roundToThreeDecimalPlaces(a[71]), // 四舍五入,
-                                            '单位': '个',
-                                            '销售收入': `￥${a[55]}`,
-                                            '税额': `￥${a[57]}`,
-                                            '价税合计': `￥${a[60]}`,
+                                        if (i.str.trim() !== '' && Math.abs(i.transform[5] - 293.30371542) <= 0.01 && Math.abs(i.transform[4] - 56.692) <= 0.01) {
+                                            res1['购买方'] = i.str;
+                                        }
+                                        if (i.str.trim() !== '' && Math.abs(i.transform[5] - 293.30371542) <= 0.01 && Math.abs(i.transform[4] - 340.152) <= 0.01) {
+                                            res1['销售方'] = i.str;
                                         }
                                     }
-                                    getdict.push(res)
-                                    console.log(a, getdict, createTable(getdict));
+                                    const mainMoney = textContentItems.filter(item => Math.abs(item.transform[5] - 228.87382434) <= 0.01);
+                                    const FINMoney = textContentItems.filter(item => Math.abs(item.transform[4] - 447.42687008) <= 0.01).map(item => item.str);
+                                    const mainInfo = textContentItems.filter(item => Math.abs(item.transform[5] - 128.60920352) <= 0.01).map(item => item.str);
+                                    const endwidth = mainMoney[mainMoney.length - 1].transform[4]
+                                    const mainMoneyh = textContentItems.filter(item => Math.abs(item.transform[5] - 228.19295341999998) <= 1 && item.transform[4] > endwidth)
+                                        .map(item => item.str).reverse();
+                                    const allMoney = textContentItems.filter(item => Math.abs(item.transform[5] - 110.57717908) <= 0.1 && Math.abs(item.transform[4] - 447.42687008) <= 0.1)
+                                        .map(item => item.str);
+                                    res1['产品名称'] = mainMoney[mainMoney.length - 1].str;
+                                    res1['数量'] = mainMoneyh[0];
+                                    res1['不含税单价'] = roundToThreeDecimalPlaces(mainMoneyh[1]);
+                                    res1['税额'] = mainMoneyh[2];
+                                    res1['销售收入'] = mainMoneyh[3];
+                                    res1['单位'] = mainMoneyh[4] || '个';
+                                    res1['价税合计'] = allMoney[0];
+                                    // console.log(res1, mainMoney, mainInfo, endwidth, mainMoneyh, allMoney)
+                                    // 按照 headers 的顺序重新组织 res1
+                                    var orderedRes1 = headers.reduce((obj, key) => {
+                                        if (res1.hasOwnProperty(key)) {
+                                            obj[key] = res1[key];
+                                        }
+                                        return obj;
+                                    }, {});
+                                    getdict.push(orderedRes1)
+                                    // console.log(a, getdict, createTable(getdict));
                                     document.getElementById('table-container').innerHTML = createTable(getdict).outerHTML;
                                 });
                             });
