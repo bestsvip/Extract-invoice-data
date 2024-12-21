@@ -140,9 +140,6 @@
 
             return table;
         }
-        function roundToThreeDecimalPlaces(num) {
-            return Math.round(num * 1000) / 1000;
-        }
         document.getElementById('pdf-file-upload').addEventListener('change', function (event) {
             const files = event.target.files;
             getdict = []
@@ -193,7 +190,7 @@
                                         .map(item => item.str);
                                     res1['产品名称'] = mainMoney[mainMoney.length - 1].str;
                                     res1['数量'] = mainMoneyh[0];
-                                    res1['不含税单价'] = roundToThreeDecimalPlaces(mainMoneyh[1]);
+                                    res1['不含税单价'] = mainMoneyh[1];
                                     res1['税额'] = mainMoneyh[2];
                                     res1['销售收入'] = mainMoneyh[3];
                                     res1['单位'] = mainMoneyh[4] || '个';
